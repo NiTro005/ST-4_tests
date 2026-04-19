@@ -212,5 +212,24 @@ namespace BugTests
             bug.Fire(BugTrigger.AssignToTriage);
             bug.Fire(BugTrigger.Reopen);
         }
+
+        [TestMethod]
+        public void Test23_NewState_InvalidTrigger_ShouldContainStateInErrorMessage()
+        {
+            var ex = Assert.ThrowsException<InvalidOperationException>(() => bug.Fire(BugTrigger.OkYes));
+            StringAssert.Contains(ex.Message, BugState.New.ToString());
+            StringAssert.Contains(ex.Message, BugTrigger.OkYes.ToString());
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void Test24_FromReopenedState_StartFix_ShouldThrowException()
+        {
+            bug.Fire(BugTrigger.AssignToTriage);
+            bug.Fire(BugTrigger.NotADefect);
+            bug.Fire(BugTrigger.OkYes);
+            bug.Fire(BugTrigger.Reopen);
+            bug.Fire(BugTrigger.StartFix);
+        }
     }
 }

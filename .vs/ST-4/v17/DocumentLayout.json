@@ -1,7 +1,12 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Sourse\\github\\\u0422\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u041F\u041E\\ST-4\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{BB99DE0F-FD7B-4B03-8328-B64852F93537}|BugTests\\BugTests.csproj|c:\\sourse\\github\\\u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u043F\u043E\\st-4\\bugtests\\test1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BB99DE0F-FD7B-4B03-8328-B64852F93537}|BugTests\\BugTests.csproj|solutionrelative:bugtests\\test1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,7 +14,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -18,6 +23,19 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Test1.cs",
+              "DocumentMoniker": "C:\\Sourse\\github\\\u0422\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u041F\u041E\\ST-4\\BugTests\\Test1.cs",
+              "RelativeDocumentMoniker": "BugTests\\Test1.cs",
+              "ToolTip": "C:\\Sourse\\github\\\u0422\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u041F\u041E\\ST-4\\BugTests\\Test1.cs",
+              "RelativeToolTip": "BugTests\\Test1.cs",
+              "ViewState": "AQIAAOEAAAAAAAAAAAAuwOoAAAABAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-19T12:25:24.512Z",
+              "EditorCaption": ""
             }
           ]
         }
