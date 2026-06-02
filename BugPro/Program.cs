@@ -1,150 +1,172 @@
 ﻿using Stateless;
 
-namespace BugPro
+namespace BugPro;
+
+public enum BugState
 {
-    public enum BugState
+    New,
+    Triage,
+    Fixing,
+    ProblemSolving,
+    Closing,
+    NotADefect,
+    WontFix,
+    Duplicate,
+    CannotReproduce,
+    OkCheck,
+    Return,
+    Reopened
+}
+
+public enum BugTrigger
+{
+    AssignToTriage,
+    NoTime,
+    SeparateSolution,
+    OtherProduct,
+    NeedMoreInfo,
+    StartFix,
+    ProblemNo,
+    ProblemYes,
+    NotADefect,
+    WontFix,
+    Duplicate,
+    CannotReproduce,
+    OkNo,
+    OkYes,
+    ReturnNo,
+    ReturnYes,
+    Reopen
+}
+
+public class Bug
+{
+    private readonly StateMachine<BugState, BugTrigger> _workflow;
+
+    private static readonly BugTrigger[] TriageReentryTriggers =
+    [
+        BugTrigger.NoTime,
+        BugTrigger.SeparateSolution,
+        BugTrigger.OtherProduct,
+        BugTrigger.NeedMoreInfo
+    ];
+
+    private static readonly BugTrigger[] ResolutionCheckTriggers =
+    [
+        BugTrigger.NotADefect,
+        BugTrigger.WontFix,
+        BugTrigger.Duplicate,
+        BugTrigger.CannotReproduce
+    ];
+
+    private static readonly BugState[] ReopenableStates =
+    [
+        BugState.NotADefect,
+        BugState.WontFix,
+        BugState.Duplicate,
+        BugState.CannotReproduce,
+        BugState.Closing
+    ];
+
+    public Bug()
     {
-        New,
-        Triage,
-        Fixing,
-        ProblemSolving,
-        Closing,
-        NotADefect,
-        WontFix,
-        Duplicate,
-        CannotReproduce,
-        OkCheck,
-        Return,
-        Reopened
+        _workflow = new StateMachine<BugState, BugTrigger>(BugState.New);
+        BuildWorkflow();
     }
 
-    public enum BugTrigger
+    public BugState State => _workflow.State;
+
+    public bool IsTriggerAllowed(BugTrigger trigger) => _workflow.CanFire(trigger);
+
+    private void BuildWorkflow()
     {
-        AssignToTriage,
-        NoTime,
-        SeparateSolution,
-        OtherProduct,
-        NeedMoreInfo,
-        StartFix,
-        ProblemNo,
-        ProblemYes,
-        NotADefect,
-        WontFix,
-        Duplicate,
-        CannotReproduce,
-        OkNo,
-        OkYes,
-        ReturnNo,
-        ReturnYes,
-        Reopen
+        _workflow.Configure(BugState.New)
+            .Permit(BugTrigger.AssignToTriage, BugState.Triage);
+
+        ConfigureTriageState();
+
+        _workflow.Configure(BugState.Fixing)
+            .Permit(BugTrigger.ProblemNo, BugState.Closing)
+            .Permit(BugTrigger.ProblemYes, BugState.ProblemSolving);
+
+        _workflow.Configure(BugState.ProblemSolving)
+            .Permit(BugTrigger.OkNo, BugState.OkCheck)
+            .Permit(BugTrigger.OkYes, BugState.Closing);
+
+        _workflow.Configure(BugState.OkCheck)
+            .Permit(BugTrigger.OkNo, BugState.Triage)
+            .Permit(BugTrigger.OkYes, BugState.Closing);
+
+        _workflow.Configure(BugState.Return)
+            .Permit(BugTrigger.ReturnNo, BugState.Triage)
+            .Permit(BugTrigger.ReturnYes, BugState.Closing);
+
+        foreach (var state in ReopenableStates)
+        {
+            _workflow.Configure(state)
+                .Permit(BugTrigger.Reopen, BugState.Reopened);
+        }
+
+        _workflow.Configure(BugState.Reopened)
+            .Permit(BugTrigger.AssignToTriage, BugState.Triage);
     }
 
-    public class Bug
+    private void ConfigureTriageState()
     {
-        private StateMachine<BugState, BugTrigger> state_machine;
+        var triage = _workflow.Configure(BugState.Triage)
+            .Permit(BugTrigger.StartFix, BugState.Fixing);
 
-        public Bug()
+        foreach (var trigger in TriageReentryTriggers)
         {
-            state_machine = new StateMachine<BugState, BugTrigger>(BugState.New);
-            ConfigureStates();
+            triage.PermitReentry(trigger);
         }
 
-        public BugState State => state_machine.State;
-
-        private void ConfigureStates()
+        foreach (var trigger in ResolutionCheckTriggers)
         {
-            state_machine.Configure(BugState.New)
-                .Permit(BugTrigger.AssignToTriage, BugState.Triage);
-
-            state_machine.Configure(BugState.Triage)
-                .PermitReentry(BugTrigger.NoTime)
-                .PermitReentry(BugTrigger.SeparateSolution)
-                .PermitReentry(BugTrigger.OtherProduct)
-                .PermitReentry(BugTrigger.NeedMoreInfo)
-                .Permit(BugTrigger.StartFix, BugState.Fixing)
-                .Permit(BugTrigger.NotADefect, BugState.OkCheck)
-                .Permit(BugTrigger.WontFix, BugState.OkCheck)
-                .Permit(BugTrigger.Duplicate, BugState.OkCheck)
-                .Permit(BugTrigger.CannotReproduce, BugState.OkCheck);
-
-            state_machine.Configure(BugState.Fixing)
-                .Permit(BugTrigger.ProblemNo, BugState.Closing)
-                .Permit(BugTrigger.ProblemYes, BugState.ProblemSolving);
-
-            state_machine.Configure(BugState.ProblemSolving)
-                .Permit(BugTrigger.OkNo, BugState.OkCheck)
-                .Permit(BugTrigger.OkYes, BugState.Closing);
-
-            state_machine.Configure(BugState.OkCheck)
-                .Permit(BugTrigger.OkNo, BugState.Triage)
-                .Permit(BugTrigger.OkYes, BugState.Closing);
-
-            state_machine.Configure(BugState.Return)
-                .Permit(BugTrigger.ReturnNo, BugState.Triage)
-                .Permit(BugTrigger.ReturnYes, BugState.Closing);
-
-            state_machine.Configure(BugState.NotADefect)
-                .Permit(BugTrigger.Reopen, BugState.Reopened);
-
-            state_machine.Configure(BugState.WontFix)
-                .Permit(BugTrigger.Reopen, BugState.Reopened);
-
-            state_machine.Configure(BugState.Duplicate)
-                .Permit(BugTrigger.Reopen, BugState.Reopened);
-
-            state_machine.Configure(BugState.CannotReproduce)
-                .Permit(BugTrigger.Reopen, BugState.Reopened);
-
-            state_machine.Configure(BugState.Closing)
-                .Permit(BugTrigger.Reopen, BugState.Reopened);
-
-            state_machine.Configure(BugState.Reopened)
-                .Permit(BugTrigger.AssignToTriage, BugState.Triage);
-        }
-
-        public void Fire(BugTrigger trigger)
-        {
-            if (state_machine.CanFire(trigger))
-            {
-                state_machine.Fire(trigger);
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                    $"Невозможно выполнить {trigger} в состоянии {state_machine.State}");
-            }
+            triage.Permit(trigger, BugState.OkCheck);
         }
     }
 
-    class Program
+    public void Fire(BugTrigger trigger)
     {
-        static void Main()
+        if (!IsTriggerAllowed(trigger))
         {
-            Console.WriteLine("WorkFlow бага");
+            throw new InvalidOperationException(
+                $"Невозможно выполнить {trigger} в состоянии {State}");
+        }
+
+        _workflow.Fire(trigger);
+    }
+}
+
+internal static class Program
+{
+    private static void Main()
+    {
+        Console.WriteLine("WorkFlow бага");
+        Console.WriteLine();
+
+        var bug = new Bug();
+        Console.WriteLine("Начальное состояние: " + bug.State);
+        Console.WriteLine();
+
+        try
+        {
+            bug.Fire(BugTrigger.AssignToTriage);
+            Console.WriteLine("AssignToTriage -> " + bug.State);
+
+            bug.Fire(BugTrigger.StartFix);
+            Console.WriteLine("StartFix -> " + bug.State);
+
+            bug.Fire(BugTrigger.ProblemNo);
+            Console.WriteLine("ProblemNo -> " + bug.State);
+
             Console.WriteLine();
-
-            var bug = new Bug();
-            Console.WriteLine("Начальное состояние: " + bug.State);
-            Console.WriteLine();
-
-            try
-            {
-                bug.Fire(BugTrigger.AssignToTriage);
-                Console.WriteLine("AssignToTriage -> " + bug.State);
-
-                bug.Fire(BugTrigger.StartFix);
-                Console.WriteLine("StartFix -> " + bug.State);
-
-                bug.Fire(BugTrigger.ProblemNo);
-                Console.WriteLine("ProblemNo -> " + bug.State);
-
-                Console.WriteLine();
-                Console.WriteLine("Конечное состояние: " + bug.State);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Ошибка: " + ex.Message);
-            }
+            Console.WriteLine("Конечное состояние: " + bug.State);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Ошибка: " + ex.Message);
         }
     }
 }
