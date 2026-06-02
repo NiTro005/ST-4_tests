@@ -3,9 +3,9 @@
 namespace BugTests
 {
     [TestClass]
-    public sealed class Test1
+    public sealed class BugWorkflowTests
     {
-        private Bug bug;
+        private Bug bug = null!;
 
         [TestInitialize]
         public void Setup()
@@ -231,5 +231,63 @@ namespace BugTests
             bug.Fire(BugTrigger.Reopen);
             bug.Fire(BugTrigger.StartFix);
         }
+
+        [TestMethod]
+        [DataRow(BugTrigger.NoTime)]
+        [DataRow(BugTrigger.SeparateSolution)]
+        [DataRow(BugTrigger.OtherProduct)]
+        [DataRow(BugTrigger.NeedMoreInfo)]
+        public void Test25_TriageReentryTriggers_ShouldStayInTriage(BugTrigger trigger)
+        {
+            bug.Fire(BugTrigger.AssignToTriage);
+
+            Assert.IsTrue(bug.IsTriggerAllowed(trigger));
+            bug.Fire(trigger);
+
+            Assert.AreEqual(BugState.Triage, bug.State);
+        }
+
+        [TestMethod]
+        [DataRow(BugTrigger.NotADefect)]
+        [DataRow(BugTrigger.WontFix)]
+        [DataRow(BugTrigger.Duplicate)]
+        [DataRow(BugTrigger.CannotReproduce)]
+        public void Test26_TriageResolutionTriggers_ShouldRequireOkCheck(BugTrigger trigger)
+        {
+            bug.Fire(BugTrigger.AssignToTriage);
+
+            Assert.IsTrue(bug.IsTriggerAllowed(trigger));
+            bug.Fire(trigger);
+
+            Assert.AreEqual(BugState.OkCheck, bug.State);
+            Assert.IsTrue(bug.IsTriggerAllowed(BugTrigger.OkYes));
+            Assert.IsTrue(bug.IsTriggerAllowed(BugTrigger.OkNo));
+        }
+
+        [TestMethod]
+        public void Test27_ReopenedBug_ShouldExposeOnlyReturnToTriageTransition()
+        {
+            bug.Fire(BugTrigger.AssignToTriage);
+            bug.Fire(BugTrigger.StartFix);
+            bug.Fire(BugTrigger.ProblemNo);
+            bug.Fire(BugTrigger.Reopen);
+
+            Assert.AreEqual(BugState.Reopened, bug.State);
+            Assert.IsTrue(bug.IsTriggerAllowed(BugTrigger.AssignToTriage));
+            Assert.IsFalse(bug.IsTriggerAllowed(BugTrigger.StartFix));
+        }
+
+        [TestMethod]
+        public void Test28_ClosingState_ShouldAllowReopenButRejectApprovalTrigger()
+        {
+            bug.Fire(BugTrigger.AssignToTriage);
+            bug.Fire(BugTrigger.StartFix);
+            bug.Fire(BugTrigger.ProblemNo);
+
+            Assert.AreEqual(BugState.Closing, bug.State);
+            Assert.IsTrue(bug.IsTriggerAllowed(BugTrigger.Reopen));
+            Assert.IsFalse(bug.IsTriggerAllowed(BugTrigger.OkYes));
+        }
+
     }
 }
